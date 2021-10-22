@@ -1,4 +1,4 @@
-setwd("C:/Users/Gabriele/Downloads")
+setwd("C:/Users/Gabriele/Documents/GitHub/StatComp2021")
 load("StatComp2021.RData")
 
 # Vogliamo capire cosa spiega la frequenza delle bevute, drink days
