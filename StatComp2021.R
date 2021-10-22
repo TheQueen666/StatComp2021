@@ -64,6 +64,7 @@ par(mfrow=c(1,1))
 ### Second model ----
 # trasformo Y tramite log, tolgo variabili non significative
 # tolgo intercetta, non ha senso
+hist(log(dati$drinks_day+1)) #esponenziale negativissima
 lm2<-lm(log(drinks_day+1)~0
         +age+gender+ 
         +education+bmi+marital
