@@ -114,7 +114,7 @@ influential <- dati[cooksd >= cutoff,];influential
 influ = dati[influential, ];influ                  
 filtered <- dati[cooksd < cutoff, ]  ;filtered    
 
-### Modello senza certe variabili
+### Modello senza certe variabili -----
 lmr<-lm(log(drinks_day+1)~0
         +age+gender+ 
           +education+bmi+marital
