@@ -43,15 +43,6 @@ cor(dati[,c("gen_health","iron")]) #controllo per gen_health, iron
 
 
 
-
-y = as.numeric(dati$drinks_day)
-X<-d_numeric
-X
-X=as.matrix(X)
-library(mctest)
-imcdiag(X,y)
-
-
 ### First model ----
 # dalle descrittive osserviamo che Y non si distribuisce come una normale
 # trasformeremo dopo
@@ -92,9 +83,13 @@ par(mfrow=c(2,2))
 plot(lm2)
 par(mfrow=c(1,1)) 
 
+imcdiag(lm2)
+
 
 p<-predict(lm1,dati)
-plot(p, dati$drinks_day)
+plot(p, dati$drinks_day) #brutto
+
+car::ncvTest(lm2) # funziona
 
 
 ### Osservazioni influenti? -----
@@ -132,3 +127,18 @@ plot(lmr)
 par(mfrow=c(1,1)) 
 
 anova(lm2,lmr) # non conviene usare l'ultimo modello 
+
+### Modello con trasformate ----
+library(gam)
+gam1<-gam(drinks_day~
+          +s(age)+gender+race+s(grip_strength)  
+          +s(education)+s(bmi)+marital+s(income)+s(household_size)
+          +insurance
+          #+private_insur+medicare+medicaid
+          +s(gen_health)+s(iron), data=dati)
+summary(gam1)
+# education vuole un terzo grado, bmi forse una parabola, income una esponenziale
+
+par(mfrow=c(2,2)) 
+plot(gam1)
+par(mfrow=c(1,1)) #la data sembra suggerire un log
