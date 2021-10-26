@@ -38,11 +38,19 @@ cor(dati[,c("military_insur","drinks_day")])
 
 cor(dati[,4:30])
 
-### Controllo collinearità -----
-target=dati[,c("drinks_day")]
-covariate=dati[,c(2,4:6)]
+cor(dati[,c("gen_health","iron")]) #controllo per gen_health, iron 
+# troppi NA?
+
+
+
+
+y = as.numeric(dati$drinks_day)
+X<-d_numeric
+X
+X=as.matrix(X)
 library(mctest)
-imcdiag(covariate,target) #Tutto risulta collineare
+imcdiag(X,y)
+
 
 ### First model ----
 # dalle descrittive osserviamo che Y non si distribuisce come una normale
@@ -59,6 +67,14 @@ summary(lm1)
 par(mfrow=c(2,2)) 
 plot(lm1)
 par(mfrow=c(1,1)) 
+
+### Controllo collinearità con TOL sotto 0,3 vengolo tolte -----
+target=dati[,c("drinks_day")]
+covariate=dati[,c(2,4:6)]
+covariate=as.matrix(covariate)
+library(mctest)
+imcdiag(covariate,target) # non funziona
+imcdiag(lm1) # funziona 
 
 
 ### Second model ----
