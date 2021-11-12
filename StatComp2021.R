@@ -131,13 +131,15 @@ anova(lm2,lmr) # non conviene usare l'ultimo modello
 ### Modello con trasformate ----
 library(gam)
 gam1<-gam(drinks_day~
-          +s(age)+gender+race+s(grip_strength)  
-          +s(education)+s(bmi)+marital+s(income)+s(household_size)
+          +s(age)+gender+s(race)+s(grip_strength)  
+          +s(education)+s(bmi)+s(marital)+s(income)+s(household_size)
           +insurance
           #+private_insur+medicare+medicaid
           +s(gen_health)+s(iron), data=dati)
 summary(gam1)
-# education vuole un terzo grado, bmi forse una parabola, income una esponenziale
+# race  vuole una parabola probabilmente
+# education vuole un terzo grado o parabola inferzo, bmi forse una parabola o una terza
+# income una esponenziale
 
 par(mfrow=c(2,2)) 
 plot(gam1)
