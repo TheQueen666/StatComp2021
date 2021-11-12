@@ -73,7 +73,7 @@ imcdiag(lm1) # funziona
 # tolgo intercetta, non ha senso
 hist(log(dati$drinks_day+1)) #esponenziale negativissima
 lm2<-lm(log(drinks_day+1)~0
-        +age+gender+ 
+        +age+gender
         +education+bmi+marital
         #+insurance+private_insur+medicare+medicaid
         +gen_health+iron, data=dati) 
@@ -100,20 +100,6 @@ halfnorm(cook, ylab = "distanza di Cook") # 1,3
 ### Punti di leva ----
 halfnorm(hatvalues(lm1), main="Punti di leva") #2318,2110
 
-
-# Osservazione influenti? Da rifare
-influencePlot(lm1, main="Influence Plot")
-stzed <- rstudent(lm1)
-lever <- hat(lm1.matrix(lm1))
-dffits1 <- dffits(lm1)
-cooksd <- cooks.distance(lm1);cooksd
-cutoff <- 4/((nrow(dati)-length(lm1$coefficients)-2))
-plot(lm1, which=4, cook.levels=cutoff)
-abline(h=cutoff)
-influential <- dati[cooksd >= cutoff,];influential 
-influ = dati[influential, ];influ                  
-filtered <- dati[cooksd < cutoff, ]  ;filtered    
-
 ### Modello senza certe variabili -----
 lmr<-lm(log(drinks_day+1)~0
         +age+gender+ 
@@ -130,7 +116,7 @@ anova(lm2,lmr) # non conviene usare l'ultimo modello
 
 ### Modello con trasformate ----
 library(gam)
-gam1<-gam(drinks_day~
+gam1<-gam(drinks_day~0+
           +s(age)+gender+s(race)+s(grip_strength)  
           +s(education)+s(bmi)+s(marital)+s(income)+s(household_size)
           +insurance
@@ -144,3 +130,21 @@ summary(gam1)
 par(mfrow=c(2,2)) 
 plot(gam1)
 par(mfrow=c(1,1)) #la data sembra suggerire un log
+
+### Ultimo modello  da rivedere----
+lmf<-lm(log(drinks_day+1)~0
+        +age+gender
+        #+ race^2
+                +education^3+bmi^3+marital+exp(income)
+        #+insurance+private_insur+medicare+medicaid
+        +gen_health+iron, data=dati)
+summary(lmf)
+# guadagno risibile rispetto al secondo modello 
+
+par(mfrow=c(2,2)) 
+plot(lmf)
+par(mfrow=c(1,1)) 
+
+
+
+### logistico: drinkdays >= 52 come soglia critica ----
