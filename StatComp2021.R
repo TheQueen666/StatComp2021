@@ -89,7 +89,7 @@ imcdiag(lm2)
 p<-predict(lm1,dati)
 plot(p, dati$drinks_day) #brutto
 
-car::ncvTest(lm2) # funziona
+car::ncvTest(lm2) # permane eteroschedasticità
 
 
 ### Osservazioni influenti? -----
@@ -144,6 +144,8 @@ summary(lmf)
 par(mfrow=c(2,2)) 
 plot(lmf)
 par(mfrow=c(1,1)) 
+
+car::ncvTest(lmf) #permane eteros.
 
 
 
