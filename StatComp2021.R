@@ -59,6 +59,7 @@ lm1<-lm(drinks_day~diabetes+as.factor(depression)
         +education+bmi+marital+income+as.factor(household_size)
         +insurance
         #+private_insur+medicare+medicaid
+        #+smoker
         +gen_health+iron, data=dati) 
 summary(lm1)
 
@@ -85,7 +86,7 @@ imcdiag(lm1) # funziona
 # trasformo Y tramite log, tolgo variabili non significative
 # tolgo intercetta, non ha senso
 hist(dati$drinks_day) #esponenziale negativissima
-lm2<-lm(log(drinks_day+1)~0
+lm2<-lm(drinks_day~0
         +age+gender
         +education+bmi+marital
         #+insurance+private_insur+medicare+medicaid
@@ -174,10 +175,12 @@ lambda=boxcoxreg1$x[which.max(boxcoxreg1$y)]
 lambda # suggerisce trasformata y -0.3434343
 
 dati$drinks_day_modificati<-dati$drinks_day^-0.3434343
+Noinflu$drinks_day_modificati<-Noinflu$drinks_day^-0.3434343
 lmc<-lm(drinks_day_modificati~0
         +age+gender+ 
-                +education+bmi+marital
+        +education+bmi+marital
         #+insurance+private_insur+medicare+medicaid
+        +as.factor(smoker)
         +gen_health+iron, data=dati) 
 summary(lmc) #netto miglioramento
 
@@ -186,7 +189,7 @@ plot(lmc)
 par(mfrow=c(1,1)) 
 
 bptest(lmc) #permane eteros
-
+anova(lm2,lmc)
 
 ### Modello con trasformate ----
 library(gam)
@@ -201,7 +204,7 @@ par(mfrow=c(1,1))
 # dubbio su age
 
 lmg<-lm(drinks_day_modificati~0
-        +I(age)^3+gender+ 
+        +exp(age)+gender+ 
                 +education+bmi+marital
         #+insurance+private_insur+medicare+medicaid
         +gen_health+iron, data=dati) 
@@ -213,6 +216,8 @@ par(mfrow=c(1,1))
 
 bptest(lmg) #permane eteros
 #Inutili trasformate sulle x
+
+anova(lmc,lmg) #conferma inutilità
 
 ### model selection da rivedere ----
 library(MASS)
@@ -257,31 +262,33 @@ plot(pf, dati$drinks_day)
 
 ### logistico: drinkdays >= 52 come soglia critica ----
 table(dati$drinks_day); median(dati$drinks_day)
-drink_dangerous<-ifelse((dati$drinks_day)>11,1,0);
-glm1<-glm(drink_dangerous~0
+drink_dangerous<-ifelse((dati$drinks_day)>11,1,0); table(drink_dangerous)
+glm1<-glm(drinks_day_modificati~0
           +age+gender
           #+ race^2
-          +education^3+bmi^3+marital+exp(income)
+          +education^3+bmi^3+marital
           #+insurance+private_insur+medicare+medicaid
           +gen_health+iron, data=dati)
 
 summary(glm1)
 exp(glm1$coefficients)
 
-r2=1-(1305.0/2978.4) # null dev / resid
+r2=1-(70/1933) # null dev / resid
 r2
 
 library(coefplot)
-coefplot(fit, intercept=FALSE)
+coefplot(glm1, intercept=FALSE)
 
 # PREDICTION
-good_covariates$predicted_p <- predict(fit, good_covariates, type="response") 
-tail(good_covariates)
+dati$predicted_p <- predict(glm1, dati, type="response") 
+tail(dati$predicted_p)
 
 # predicted target
-good_covariates$predicted_y <- ifelse(good_covariates$predicted_p > 0.5,1,0)
+hist(dati$predicted_p)
+dati$predicted_y <- ifelse(dati$predicted_p > 0.5,1,0); table(dati$predicted_y)
+#Vengono tutti 1, nessuno zero, non va bene per la matrice di confusione
 
-table(observed=good_covariates$yes, predicted=good_covariates$predicted_y)/nrow(good_covariates)
+table(observed=dati$drink_dangerous, predicted=dati$predicted_y)/nrow(dati) #infatti dà errore
 
 accuracy=0.315+0.4819
 accuracy
