@@ -263,7 +263,7 @@ plot(pf, dati$drinks_day)
 ### logistico: drinkdays >= 52 come soglia critica ----
 table(dati$drinks_day); median(dati$drinks_day)
 drink_dangerous<-ifelse((dati$drinks_day)>11,1,0); table(drink_dangerous)
-glm1<-glm(drinks_day_modificati~0
+glm1<-glm(drink_dangerous~0
           +age+gender
           #+ race^2
           +education^3+bmi^3+marital
@@ -273,7 +273,7 @@ glm1<-glm(drinks_day_modificati~0
 summary(glm1)
 exp(glm1$coefficients)
 
-r2=1-(70/1933) # null dev / resid
+r2=1-(61/65) # null dev / resid
 r2
 
 library(coefplot)
@@ -286,11 +286,12 @@ tail(dati$predicted_p)
 # predicted target
 hist(dati$predicted_p)
 dati$predicted_y <- ifelse(dati$predicted_p > 0.5,1,0); table(dati$predicted_y)
-#Vengono tutti 1, nessuno zero, non va bene per la matrice di confusione
+# Vengono tutti 0, nessuno 1, non va bene per la matrice di confusione. 
+# Colpa dello pseudo  R quadro
 
 table(observed=dati$drink_dangerous, predicted=dati$predicted_y)/nrow(dati) #infatti dà errore
 
-accuracy=0.315+0.4819
+accuracy=0.315+0.4819 #Da rivedere perché prende i numeri della riga precedente.
 accuracy
 
 
