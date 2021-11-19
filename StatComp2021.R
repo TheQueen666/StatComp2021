@@ -24,7 +24,7 @@ options(scipen=999)
 summary(dati) # ordine differente, vedo gli NAs con più fatica
 descr<-skim(dati) #non userò le covariate con più missing >2000
 descr
-# num colonna: 5,6,10:14, 16, 18:24 ....
+# non user num colonna: 5,6,10:14, 16, 18:24 ....
 
 hist(dati$age)
 plot(ecdf(dati$age)) #mi serve per capire se ha senso mettere delle età nel modello
@@ -299,7 +299,7 @@ summary(lmqg)
 par(mfrow=c(2,2)) 
 plot(lmqg)
 par(mfrow=c(1,1)) 
-bptest(lmqg)
+bptest(lmqg) 
 
 # Controllo ipotesi
 
@@ -347,7 +347,7 @@ bptest(lmrob1)
 
 
 ### Confronto modello iniziale-finale ----
-pf<-predict(lmf,dati)
+pf<-predict(lmqg,dati)
 par(mfrow=c(1,2)) 
 plot(p,dati$drinks_day)
 plot(pf, dati$drinks_day)
@@ -358,9 +358,7 @@ table(dati$drinks_day); median(dati$drinks_day)
 drink_dangerous<-ifelse((dati$drinks_day)>11,1,0); table(drink_dangerous)
 glm1<-glm(drink_dangerous~0
           +age+gender
-          #+ race^2
-          +education^3+bmi^3+marital
-          #+insurance+private_insur+medicare+medicaid
+          +education+bmi+marital
           +gen_health+iron, data=dati)
 
 summary(glm1)
