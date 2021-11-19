@@ -17,6 +17,7 @@ library("skimr")
 library(gvlma)
 library(lmtest)
 library(sandwich)
+library(car)
 options(scipen=999)
 
 ### Descriptives ----
@@ -24,6 +25,10 @@ summary(dati) # ordine differente, vedo gli NAs con più fatica
 descr<-skim(dati) #non userò le covariate con più missing >2000
 descr
 # num colonna: 5,6,10:14, 16, 18:24 ....
+
+hist(dati$age)
+plot(ecdf(dati$age)) #mi serve per capire se ha senso mettere delle età nel modello
+
 
 
 # posso automatizzare?
@@ -98,7 +103,7 @@ plot(lm2)
 par(mfrow=c(1,1)) 
 
 bptest(lm2) #presenta eteros. serve sistemare l'inferenza.
-coeftest(lm2, vcov=vcovHC(lm2)) 
+coeftest(lm2, vcov=vcovHC(lm2)) #infatti suggerisce di togliere gen_health
 
 imcdiag(lm2)
 
@@ -108,10 +113,39 @@ plot(p, dati$drinks_day) #brutto
 
 car::ncvTest(lm2) # permane eteroschedasticità
 
+### Modello con solo quantitative ----
+lmq<-lm(drinks_day~0+
+        +(age*income)+iron, data=dati) 
+summary(lmq)
+
+par(mfrow=c(2,2)) 
+plot(lmq)
+par(mfrow=c(1,1)) 
+car::ncvTest(lmq) #con questa versione l'eteros. e ne va se si lavora di più
+# nel modello successivo aggiungo un factor
+coeftest(lmq, vcov=vcovHC(lmq)) 
+
+### Modello con solo un factor ----
+lmq1<-lm(log(drinks_day+1)~0
+        +exp(age)+exp(income)+iron+gender, data=dati) 
+summary(lmq1)
+
+par(mfrow=c(2,2)) 
+plot(lmq1)
+par(mfrow=c(1,1)) 
+car::ncvTest(lmq1) # ricompare
+# riprendere più avanti lo studio del modello con solo quantitativi
+
+### Model with interactions ----
+lmi<-lm(drinks_day~0
+        +age*education*gender+marital*bmi+iron, data=dati) 
+summary(lmi) #inutile e pesante
+
+
 
 ### Osservazioni influenti? Codice lovaglio -----
 # outliers
-library(car)
+
 influencePlot(lm2,  main="Influence Plot", sub="Circle size is proportial to Cook's Distance" )
 
 cooksd <- cooks.distance(lm2)
@@ -126,11 +160,11 @@ cutoff <- 4/(n_used-length(lm2$coefficients)-2)
 cutoff
 Noinflu=data.frame(dati[cooksd < cutoff, ])  # influential row numbers
 
-lminf = lm(log(drinks_day+1)~0
-           +age+gender
-           +education+bmi+marital
-           #+insurance+private_insur+medicare+medicaid
-           +gen_health+iron, data=dati)
+lminf = lm(drinks_day~0
+           +age*education+gender
+           +marital
+           +bmi
+           +gen_health+iron, data=Noinflu)
 summary(lminf)
 
 par(mfrow=c(2,2)) 
@@ -138,7 +172,7 @@ plot(lminf)
 par(mfrow=c(1,1)) 
 
 bptest(lminf) #presenta eteros. serve sistemare l'inferenza.
-# Togliere osservazioni non migliora il modello
+# migliora il modello
 
 ### Distanze di cook valori influenti: versione Pennoni ----
 require(faraway)
@@ -169,34 +203,37 @@ coeftest(lm2, vcov=vcovHC(lm2))
 
 ### Box Cox----
 library(MASS)
-boxcoxreg1<-boxcox(lm2)
+boxcoxreg1<-boxcox(lminf)
 title("Lambda")
 lambda=boxcoxreg1$x[which.max(boxcoxreg1$y)]
 lambda # suggerisce trasformata y -0.3434343
 
-dati$drinks_day_modificati<-dati$drinks_day^-0.3434343
-Noinflu$drinks_day_modificati<-Noinflu$drinks_day^-0.3434343
+dati$drinks_day_modificati<-dati$drinks_day^lambda
+Noinflu$drinks_day_modificati<-Noinflu$drinks_day^lambda
 lmc<-lm(drinks_day_modificati~0
-        +age+gender+ 
-        +education+bmi+marital
-        #+insurance+private_insur+medicare+medicaid
-        +as.factor(smoker)
-        +gen_health+iron, data=dati) 
-summary(lmc) #netto miglioramento
+        +age+education
+        +gender
+        +marital
+        +bmi
+        +iron, data=Noinflu) 
+summary(lmc) #netto miglioramento, droppo l'interazione, strano
 
 par(mfrow=c(2,2)) 
 plot(lmc)
 par(mfrow=c(1,1)) 
 
 bptest(lmc) #permane eteros
+coeftest(lmc, vcov=vcovHC(lmc)) 
 anova(lm2,lmc)
 
 ### Modello con trasformate ----
 library(gam)
 gam1<-gam(drinks_day_modificati~0
-          +s(age)+gender+ 
-                  +education+s(bmi)+marital
-          +gen_health+s(iron), data=dati)
+          +s(age)+education
+          +gender
+          +marital
+          +s(bmi)
+          +gen_health+s(iron), data=Noinflu)
 summary(gam1)
 par(mfrow=c(2,2)) 
 plot(gam1)
@@ -204,10 +241,11 @@ par(mfrow=c(1,1))
 # dubbio su age
 
 lmg<-lm(drinks_day_modificati~0
-        +exp(age)+gender+ 
-                +education+bmi+marital
-        #+insurance+private_insur+medicare+medicaid
-        +gen_health+iron, data=dati) 
+        +exp(age)+education
+        +gender
+        +marital
+        +bmi
+        +gen_health+iron, data=Noinflu) 
 summary(lmg) 
 
 par(mfrow=c(2,2)) 
@@ -219,39 +257,94 @@ bptest(lmg) #permane eteros
 
 anova(lmc,lmg) #conferma inutilità
 
-### model selection da rivedere ----
+### model selection ----
 library(MASS)
 step <- stepAIC(lmc, direction="both")
+# abbiamo già il modello migliore. 
+#Visti i problemi di eteros., conviene cambiare approccio.
 
+### Riprendo il solo quantativo: ultimo modello ----
+# BC
+boxcoxregq<-boxcox(lmq)
+title("Lambda")
+lambdaq=boxcoxregq$x[which.max(boxcoxregq$y)]
+lambdaq 
 
-### Ultimo modello: metto factor delle variabili e uso GAM---
-lmf<-lm(log(drinks_day+1)~0
-        +age+factor(gender)+as.factor(race)
-        +income
-        +factor(education)+bmi+factor(marital)
-        #+insurance+private_insur+medicare+medicaid
-        +gen_health+iron, data=dati)
-summary(lmf)
-
-shapiro.test(lmf$residuals) #accetta normalità dei residui
-
-# guadagno risibile rispetto al secondo modello: conviene usare lm2
+lmqbc<-lm(drinks_day^lambdaq~0
+        +(age*income)+iron, data=dati) 
+summary(lmqbc)
 
 par(mfrow=c(2,2)) 
-plot(lmf)
+plot(lmqbc)
+par(mfrow=c(1,1)) 
+car::ncvTest(lmqbc) #eteros, usiamo GAM
+
+
+# GAM
+gamq<-gam(drinks_day^lambdaq~0
+        +s(age*income)+s(iron), data=dati) 
+summary(gamq)
+
+library(akima)
+par(mfrow=c(2,2)) 
+plot(gamq)
 par(mfrow=c(1,1)) 
 
-car::ncvTest(lmf) #permane eteros. In ogni caso uso lm2
+# age*iron exponential/log
+
+lmqg<-lm(drinks_day^lambdaq~0
+          +log(age*income)+(iron), data=dati) 
+summary(lmqg)
+
+par(mfrow=c(2,2)) 
+plot(lmqg)
+par(mfrow=c(1,1)) 
+bptest(lmqg)
 
 # Controllo ipotesi
 
 #Prima
 bptest(lm1)
-gvlma(lm1)
-
 #Dopo
-bptest(lmf)
-gvlma(lmf) 
+bptest(lmqg) # robusto
+
+# Vediamo con influ che succede
+influencePlot(lmqg,  main="Influence Plot", sub="Circle size is proportial to Cook's Distance" )
+
+cooksd2 <- cooks.distance(lmqg)
+cooksda=data.frame(cooksd2)
+
+# cutoff of cookD  4/(n-k).. NB n should be n used in the model!!!
+
+n_used2=length(lmqg$residuals)
+n_used2 
+cutoff2 <- 4/(n_used2-length(lmqg$coefficients)-2)
+cutoff2
+Noinflu2=data.frame(dati[cooksd2 < cutoff2, ])  # influential row numbers
+
+lmqgni<-lm(drinks_day^lambdaq~0
+         +log(age*income)+(iron), data= Noinflu2)
+summary(lmqgni) #il modello peggiora
+
+par(mfrow=c(2,2)) 
+plot(lmqgni)
+par(mfrow=c(1,1)) 
+
+bptest(lmqgni) #meno confidenza su assenza eteroschedasticità
+# quindi conviene usare lmqg come modello finale 
+
+# modello robusto con lmrob
+library(robust)
+lmrob1<-lmRob(drinks_day^lambdaq~0
+                 +log(age*income)+(iron), data=dati)
+summary(lmrob1)
+
+par(mfrow=c(2,2)) 
+plot(lmrob1)
+par(mfrow=c(1,1))
+bptest(lmrob1)
+
+
 
 ### Confronto modello iniziale-finale ----
 pf<-predict(lmf,dati)
