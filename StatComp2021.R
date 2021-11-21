@@ -1,7 +1,7 @@
 setwd("C:/Users/Gabriele/Documents/GitHub/StatComp2021")
 load("StatComp2021.RData")
 
-# Vogliamo capire cosa spiega la frequenza delle bevute, drink days
+# Vogliamo capire cosa spiega la frequenza delle bevute, drinks day
 dati<-read.csv("https://raw.githubusercontent.com/F041/StatComp2021/main/Merged_Unique_Names_V2.csv")
 head(data)
 
@@ -21,13 +21,13 @@ library(car)
 options(scipen=999)
 
 ### Descriptives ----
-summary(dati) # ordine differente, vedo gli NAs con pi˘ fatica
-descr<-skim(dati) #non userÚ le covariate con pi˘ missing >2000
+summary(dati) #ordine differente, vedo gli NAs con pi√π fatica
+descr<-skim(dati) #non user√≤ le covariate con pi√π missing > 2000
 descr
 # non user num colonna: 5,6,10:14, 16, 18:24 ....
 
 hist(dati$age)
-plot(ecdf(dati$age)) #mi serve per capire se ha senso mettere delle et‡ nel modello
+plot(ecdf(dati$age)) #mi serve per capire se ha senso mettere delle et√† nel modello
 
 
 
@@ -77,8 +77,9 @@ coeftest(lm1, vcov=vcovHC(lm1))
 
 
 p<-predict(lm1,dati) #serve dopo
+#predict serve per predire i dati mancanti, ma in che modo? (so che me l'hai gi√† detto come tutte le prossime domande)
 
-### Controllo collinearit‡ con TOL sotto 0,3 vengolo tolte -----
+### Controllo collinearit√† con TOL sotto 0,3 vengono tolte -----
 target=dati[,c("drinks_day")]
 covariate=dati[,c(2,4:6)]
 covariate=as.matrix(covariate)
@@ -86,6 +87,7 @@ library(mctest)
 imcdiag(covariate,target) # non funziona
 imcdiag(lm1) # funziona 
 
+#eliminiamo race, grip_strength, income, household_size ma secondo quale criterio visto che TOL non √® mai sotto 0,3?
 
 ### Second model ----
 # trasformo Y tramite log, tolgo variabili non significative
@@ -111,7 +113,7 @@ imcdiag(lm2)
 p<-predict(lm1,dati)
 plot(p, dati$drinks_day) #brutto
 
-car::ncvTest(lm2) # permane eteroschedasticit‡
+car::ncvTest(lm2) # permane eteroschedasticit√†
 
 ### Modello con solo quantitative ----
 lmq<-lm(drinks_day~0+
@@ -121,7 +123,7 @@ summary(lmq)
 par(mfrow=c(2,2)) 
 plot(lmq)
 par(mfrow=c(1,1)) 
-car::ncvTest(lmq) #con questa versione l'eteros. e ne va se si lavora di pi˘
+car::ncvTest(lmq) #con questa versione l'eteros. se ne va se si lavora di pi√π
 # nel modello successivo aggiungo un factor
 coeftest(lmq, vcov=vcovHC(lmq)) 
 
@@ -134,7 +136,7 @@ par(mfrow=c(2,2))
 plot(lmq1)
 par(mfrow=c(1,1)) 
 car::ncvTest(lmq1) # ricompare
-# riprendere pi˘ avanti lo studio del modello con solo quantitativi
+# riprendere pi√π avanti lo studio del modello con solo quantitativi
 
 ### Model with interactions ----
 lmi<-lm(drinks_day~0
@@ -173,6 +175,8 @@ par(mfrow=c(1,1))
 
 bptest(lminf) #presenta eteros. serve sistemare l'inferenza.
 # migliora il modello
+# Breusch Pagan test
+# Risolviamo l'eteroschedasticit√† con il metodo di White (coeftest riga 206)
 
 ### Distanze di cook valori influenti: versione Pennoni ----
 require(faraway)
@@ -206,7 +210,7 @@ library(MASS)
 boxcoxreg1<-boxcox(lminf)
 title("Lambda")
 lambda=boxcoxreg1$x[which.max(boxcoxreg1$y)]
-lambda # suggerisce trasformata y -0.3434343
+lambda # suggerisce trasformata y -0.3434343 (-0.3030303)
 
 dati$drinks_day_modificati<-dati$drinks_day^lambda
 Noinflu$drinks_day_modificati<-Noinflu$drinks_day^lambda
@@ -238,7 +242,7 @@ summary(gam1)
 par(mfrow=c(2,2)) 
 plot(gam1)
 par(mfrow=c(1,1)) 
-# dubbio su age
+# dubbio su age, smooth in base a...?
 
 lmg<-lm(drinks_day_modificati~0
         +exp(age)+education
@@ -253,14 +257,14 @@ plot(lmg)
 par(mfrow=c(1,1)) 
 
 bptest(lmg) #permane eteros
-#Inutili trasformate sulle x
+#Inutili trasformate sulle x, lo si capisce dalla diagnostica dei residui giusto?
 
-anova(lmc,lmg) #conferma inutilit‡
+anova(lmc,lmg) #conferma inutilit√†
 
 ### model selection ----
 library(MASS)
 step <- stepAIC(lmc, direction="both")
-# abbiamo gi‡ il modello migliore. 
+# abbiamo gi√† il modello migliore. 
 #Visti i problemi di eteros., conviene cambiare approccio.
 
 ### Riprendo il solo quantativo: ultimo modello ----
@@ -268,7 +272,7 @@ step <- stepAIC(lmc, direction="both")
 boxcoxregq<-boxcox(lmq)
 title("Lambda")
 lambdaq=boxcoxregq$x[which.max(boxcoxregq$y)]
-lambdaq 
+lambdaq # -0.4242424
 
 lmqbc<-lm(drinks_day^lambdaq~0
         +(age*income)+iron, data=dati) 
@@ -290,7 +294,7 @@ par(mfrow=c(2,2))
 plot(gamq)
 par(mfrow=c(1,1)) 
 
-# age*iron exponential/log
+# age*iron exponential/log, perch√® si fa in questo modo?
 
 lmqg<-lm(drinks_day^lambdaq~0
           +log(age*income)+(iron), data=dati) 
@@ -324,13 +328,13 @@ Noinflu2=data.frame(dati[cooksd2 < cutoff2, ])  # influential row numbers
 
 lmqgni<-lm(drinks_day^lambdaq~0
          +log(age*income)+(iron), data= Noinflu2)
-summary(lmqgni) #il modello peggiora
+summary(lmqgni) #il modello peggiora, perch√®?
 
 par(mfrow=c(2,2)) 
 plot(lmqgni)
 par(mfrow=c(1,1)) 
 
-bptest(lmqgni) #meno confidenza su assenza eteroschedasticit‡
+bptest(lmqgni) #meno confidenza su assenza eteroschedasticit√†
 # quindi conviene usare lmqg come modello finale 
 
 # modello robusto con lmrob
@@ -338,6 +342,8 @@ library(robust)
 lmrob1<-lmRob(drinks_day^lambdaq~0
                  +log(age*income)+(iron), data=dati)
 summary(lmrob1)
+
+#age*income secondo quale regola?
 
 par(mfrow=c(2,2)) 
 plot(lmrob1)
@@ -388,6 +394,8 @@ cm<-100*(table(observed=drink_dangerous, predicted=dati$predicted_y)/nrow(dati))
 
 accuracy=cm[1,1]+cm[2,2]
 accuracy #scadente 
+
+#logistico arabo
 
 
 
