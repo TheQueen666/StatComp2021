@@ -355,16 +355,18 @@ plot(pf, dati$drinks_day)
 
 ### logistico: drinkdays >= 52 come soglia critica ----
 table(dati$drinks_day); median(dati$drinks_day)
-drink_dangerous<-ifelse((dati$drinks_day)>11,1,0); table(drink_dangerous)
-glm1<-glm(drink_dangerous~0
-          +age+gender
-          +education+bmi+marital
-          +gen_health+iron, data=dati)
+drink_dangerous<-ifelse((dati$drinks_day)>6,1,0); table(drink_dangerous)
+glm1<-glm(drink_dangerous~0+
+                  log(age*income)+(iron)
+          , family="binomial", data=dati)
 
-summary(glm1)
+summary(glm1);glm1$null.deviance
+glm1$deviance
+drop1(glm1, test="LRT")
+
 exp(glm1$coefficients)
 
-r2=1-(61/65) # null dev / resid
+r2=1-(glm1$deviance/glm1$null.deviance) # null dev / resid
 r2
 
 library(coefplot)
@@ -375,15 +377,17 @@ dati$predicted_p <- predict(glm1, dati, type="response")
 tail(dati$predicted_p)
 
 # predicted target
-hist(dati$predicted_p)
-dati$predicted_y <- ifelse(dati$predicted_p > 0.5,1,0); table(dati$predicted_y)
-# Vengono tutti 0, nessuno 1, non va bene per la matrice di confusione. 
-# Colpa dello pseudo  R quadro
+hist(dati$predicted_p,breaks=20)
+# faccio tuning soglia a 0.14 altrimenti mi prevede troppi 1 rispetto alla table di sopra
+dati$predicted_y <- ifelse(dati$predicted_p > 0.14,1,0); table(dati$predicted_y)
+# 211 uni contro i 202 di sopra
 
-table(observed=dati$drink_dangerous, predicted=dati$predicted_y)/nrow(dati) #infatti dà errore
+length(drink_dangerous)
+length(dati$predicted_y)
+cm<-100*(table(observed=drink_dangerous, predicted=dati$predicted_y)/nrow(dati)); cm
 
-accuracy=0.315+0.4819 #Da rivedere perché prende i numeri della riga precedente.
-accuracy
+accuracy=cm[1,1]+cm[2,2]
+accuracy #scadente 
 
 
 
